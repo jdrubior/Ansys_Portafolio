@@ -1,0 +1,5 @@
+__pycache__/
+# STEP grandes y regenerables con turbina_axial_3d.py
+turbina_axial.step
+rotor.step
+estator.step
