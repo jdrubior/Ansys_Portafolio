@@ -1,0 +1,4 @@
+malla,h_bulk_mm,paso_pared_mm,capas_z,celdas_estimadas
+gruesa,2.4,1.0,6,108229
+media,1.6,0.7,9,275378
+fina,1.1,0.5,13,679935
