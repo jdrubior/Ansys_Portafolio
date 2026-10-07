@@ -31,3 +31,7 @@ python 02_Disipador_CFD/validacion/analisis_independencia.py
 ## Software
 
 Ansys 2026 R1 Student (límites: 128 mil nodos/elementos en estructural y 1 millón de celdas en fluidos).
+
+## Nota sobre el uso de IA
+
+Los informes y los instructivos se redactaron con apoyo de un asistente de IA (Claude). Los modelos, el mallado, las simulaciones en Ansys, la interpretación de los resultados y la validación son trabajo propio.
