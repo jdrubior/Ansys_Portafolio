@@ -1,0 +1,223 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[T1]{fontenc}\usepackage[utf8]{inputenc}
+\usepackage[scaled=0.95]{helvet}\renewcommand{\familydefault}{\sfdefault}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx,xcolor,enumitem,booktabs,amsmath,siunitx,capt-of,needspace}
+\usepackage[most]{tcolorbox}\usepackage{hyperref,fancyhdr,titlesec,listings}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\renewcommand{\contentsname}{Contenido}\renewcommand{\figurename}{Figura}
+\definecolor{ansys}{RGB}{255,183,27}
+\titleformat{\section}{\Large\bfseries}{\colorbox{ansys}{\makebox[1.6em]{\thesection}}}{0.6em}{}
+\pagestyle{fancy}\fancyhf{}\lhead{\small Disipador de aletas (CFD) --- Instructivo Ansys Fluent}\rhead{\small Ing. Juan Diego Rubio Ruiz}\cfoot{\thepage}
+\newtcolorbox{nota}[1][Nota]{colback=yellow!8,colframe=ansys!90!black,fonttitle=\bfseries,title=#1}
+\newtcolorbox{alerta}[1][Cuidado]{colback=red!4,colframe=red!60!black,fonttitle=\bfseries,title=#1}
+\newcommand{\menu}[1]{\textsf{\textbf{#1}}}
+\newcommand{\paso}[2]{\par\needspace{0.42\textheight}\begin{center}\includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{img/#1}\captionof{figure}{#2}\end{center}}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,backgroundcolor=\color{gray!8}}
+\setlist[enumerate]{itemsep=2pt,topsep=4pt}
+\begin{document}
+\begin{titlepage}\centering\vspace*{2cm}
+{\Huge\bfseries Disipador de aletas con aire forzado\par}\vspace{0.4cm}
+{\LARGE Instructivo paso a paso en Ansys Fluent 2026 R1 Student\par}\vspace{1cm}
+\includegraphics[width=0.9\linewidth]{img/frame_video.jpg}\par\vspace{1cm}
+{\large Transferencia de calor conjugada, malla con inflación, estudio de independencia\\ y postproceso con líneas de corriente animadas\par}
+\vfill{\large Ing. Juan Diego Rubio Ruiz\par}{\normalsize Proyecto 2 del portafolio de simulación --- Octubre 2026\par}
+\end{titlepage}
+\tableofcontents\newpage
+
+\section{El problema}
+Disipador de aluminio de 10 aletas que disipa \SI{10}{W} por su base, con aire a \SI{25}{\celsius} y \SI{2}{m/s} dentro de un ducto. Se busca la resistencia térmica $R_{th}=(T_{\text{base}}-T_\infty)/Q$ y la caída de presión.
+\begin{center}\begin{tabular}{ll}\toprule
+Base / aletas & $50\times50\times\SI{5}{mm}$ / 10 aletas de $1.5\times25\times\SI{50}{mm}$\\
+Material & Aluminio, $k=\SI{205}{W/(m.K)}$\\
+Carga & $q''=\SI{4000}{W/m^2}$ en la cara inferior de la base\\
+Aire & \SI{25}{\celsius}, \SI{2}{m/s}, propiedades a \SI{30}{\celsius}\\
+Modelo & Medio modelo (5 aletas) con simetría, flujo laminar, CHT\\\bottomrule
+\end{tabular}\end{center}
+\begin{nota}[Archivos]
+Todo en\\ \path{Documentos\Proyectos_Ansys_Portafolio\02_Disipador_CFD\}: \path{geometria} (script), \path{workbench} (proyecto), \path{resultados} (CSV, imágenes, videos) e \path{informe}.
+\end{nota}
+
+\section{Workbench}
+\paso{a_wb.jpg}{Sistema Fluid Flow (Fluent).}
+\begin{enumerate}
+\item Arrastrar \menu{Fluid Flow (Fluent)} desde el Toolbox y guardar con \menu{File $\rightarrow$ Save As} en \path{workbench\disipador}.
+\item No cambiar el Analysis Type: este modelo es 3D.
+\end{enumerate}
+\begin{alerta}[SolidWorks no abrió]
+Si SolidWorks marca error de licencia (\emph{daemon}), la geometría se hace directo en SpaceClaim con el script de la sección siguiente.
+\end{alerta}
+
+\section{Geometría en SpaceClaim}
+\subsection{Disipador con script}
+\paso{guia2_script.jpg}{Abrir el editor de scripts.}
+\begin{enumerate}
+\item Clic derecho en \menu{Geometry $\rightarrow$ New SpaceClaim Geometry}; unidades en mm.
+\item Salir del modo boceto (\menu{End Sketch Editing}) $\rightarrow$ pestaña \menu{Design} $\rightarrow$ grupo \menu{Record} $\rightarrow$ \menu{Script}.
+\item Pegar el contenido de \path{geometria\disipador_mitad_spaceclaim.py} y presionar \menu{Run}.
+\end{enumerate}
+Ejes: $X$ = flujo (largo de aletas), $Y$ = ancho, $Z$ = altura. Paso entre aletas $1.5+3.889=\SI{5.389}{mm}$; después de la quinta aleta queda \SI{1.944}{mm} (media separación) hasta el plano de simetría $y=25$.
+\paso{guia2_combine.jpg}{El script crea 6 cuerpos: hay que unirlos.}
+\menu{Design $\rightarrow$ Combine}: clic en la base, \texttt{Ctrl}+clic en cada aleta, \texttt{Esc}. Debe quedar \textbf{un solo Solid}.
+
+\subsection{Dominio de aire (Enclosure)}
+\paso{guia2_enclosure.jpg}{Prepare $\rightarrow$ Enclosure.}
+\paso{guia2_cushion.jpg}{Desmarcar Symmetric dimensions; Default cushion = 0.}
+\paso{guia2_cushion_x.jpg}{Solo cambian los extremos en $X$.}
+\begin{center}\begin{tabular}{lll}\toprule
+Dirección & Cushion & Para qué\\\midrule
+$-X$ (entrada) & \SI{100}{mm} & $2L$ antes del disipador\\
+$+X$ (salida) & \SI{200}{mm} & $4L$ después\\
+$\pm Y$, $\pm Z$ & 0 & ducto pegado a aletas, base y simetría\\\bottomrule
+\end{tabular}\end{center}
+Dejar \menu{Create share topology} marcado (acopla aire y aluminio) y aceptar con la palomita verde.
+\paso{a_cushion_ok.jpg}{Dominio creado.}
+\paso{a_hueco.jpg}{Comprobación: con el aluminio oculto se ven las ranuras en el aire.}
+\begin{alerta}[Aviso ``protruding bodies'']
+Con cushion 0 SpaceClaim puede mostrar un aviso. Si al ocultar el aluminio se ven las ranuras, la resta salió bien y el aviso se ignora.
+\end{alerta}
+Renombrar los cuerpos \texttt{aluminio} y \texttt{aire} (F2). Si \menu{Fluid = True} no se deja cambiar, se define después en Meshing.
+
+\subsection{Named Selections}
+\paso{guia2_salir_enclosure.jpg}{Salir de Enclosure (Select o Esc) e ir a Groups.}
+\paso{guia2_named.jpg}{Caras con nombre.}
+\paso{guia2_simetria.jpg}{simetria: cara superior completa de la caja ($y=25$).}
+\paso{guia2_simetria_base.jpg}{simetria\_base: costado de la base de aluminio en $y=25$.}
+\begin{center}\begin{tabular}{ll}\toprule
+Nombre & Cara\\\midrule
+\texttt{entrada} & extremo del aire en $x=-100$\\
+\texttt{salida} & extremo del aire en $x=250$\\
+\texttt{simetria} & cara $y=25$ del aire\\
+\texttt{simetria\_base} & costado de la base en $y=25$\\
+\texttt{fuente\_calor} & cara inferior de la base ($z=0$), con el aire oculto\\\bottomrule
+\end{tabular}\end{center}
+Para cada una: clic en la cara $\rightarrow$ \menu{Create NS} $\rightarrow$ renombrar. Guardar y cerrar SpaceClaim (al preguntar por guardar el \emph{script}, responder No).
+
+\section{Malla (Meshing)}
+\paso{a_fluid.jpg}{Definir el aire como fluido.}
+\begin{enumerate}
+\item Doble clic en \menu{Mesh}. En \menu{Geometry $\rightarrow$ aire}: \menu{Fluid/Solid = Fluid}.
+\item \menu{Mesh}: Physics Preference \menu{CFD}, Solver \menu{Fluent}, Element Size \SI{3}{mm}.
+\end{enumerate}
+\paso{guia2_sizing.jpg}{Body Sizing en el aluminio.}
+\begin{enumerate}
+\item Clic derecho en \menu{Mesh $\rightarrow$ Insert $\rightarrow$ Sizing}; filtro \menu{Body} (Ctrl+B), clic en el disipador $\rightarrow$ \menu{Apply}; Element Size \SI{0.7}{mm}. (Con preferencia CFD no aparece \emph{Behavior}; es normal.)
+\item \menu{Mesh $\rightarrow$ Inflation}: Program Controlled, 5 capas, Growth Rate 1.2.
+\item \menu{Generate}.
+\end{enumerate}
+\paso{a_malla.jpg}{Malla fina generada.}
+\paso{a_skew.jpg}{Quality $\rightarrow$ Skewness: máximo $<0.95$.}
+
+\section{Fluent: configuración}
+\paso{a_launcher.jpg}{Launcher.}
+Cerrar Meshing, \menu{Mesh $\rightarrow$ Update} y doble clic en \menu{Setup}. Marcar \menu{Double Precision} y 4 procesos (máximo de la versión Student).
+\paso{a_check.jpg}{General $\rightarrow$ Check.}
+\begin{nota}
+La ñ de \texttt{simetría} se convierte en guion bajo: en Fluent aparece \texttt{simetr\_a}. La zona \texttt{wall-...-aluminio-shadow} es la interfaz acoplada.
+\end{nota}
+\paso{a_laminar.jpg}{Models: Energy On y Viscous Laminar ($\text{Re}_{D_h}\approx1400$).}
+\paso{a_aire.jpg}{Material aire.}
+\paso{a_aluminio.jpg}{Material aluminio.}
+\begin{alerta}[Change/Create]
+Después de escribir las propiedades hay que dar \menu{Change/Create} \textbf{antes} de cambiar el tipo de material. Comprobarlo cerrando y volviendo a abrir el material.
+\end{alerta}
+\paso{a_cellzones.jpg}{Cell Zone Conditions.}
+\paso{guia2_bc_tipo.jpg}{El tipo de zona se cambia con clic derecho $\rightarrow$ Type.}
+\paso{a_inlet.jpg}{Entrada.}
+\paso{a_heatflux.jpg}{Fuente de calor.}
+\begin{center}\begin{tabular}{lll}\toprule
+Zona & Tipo & Valores\\\midrule
+entrada & velocity-inlet & \SI{2}{m/s}, \SI{298.15}{K}\\
+salida & pressure-outlet & 0 Pa, backflow \SI{298.15}{K}\\
+simetr\_a, simetr\_a\_base & symmetry & ---\\
+fuente\_calor & wall & Heat Flux \SI{4000}{W/m^2}\\
+interfaz + shadow & wall & Coupled (automático)\\
+demás paredes & wall & Heat Flux 0 (adiabática)\\\bottomrule
+\end{tabular}\end{center}
+
+\section{Solución}
+\paso{a_report.jpg}{Methods y monitores.}
+\begin{enumerate}
+\item \menu{Methods}: Coupled, presión Second Order, momento y energía Second Order Upwind.
+\item \menu{Report Definitions $\rightarrow$ New $\rightarrow$ Surface Report}: \texttt{t\_max\_base} (Facet Maximum, Static Temperature, fuente\_calor) y \texttt{p\_entrada} (Area-Weighted Average, Static Pressure, entrada). Marcar Report File, Report Plot y Print to Console.
+\end{enumerate}
+\paso{a_resid.jpg}{Criterios de residuales.}
+\paso{a_run.jpg}{Hybrid Initialize $\rightarrow$ 500 iteraciones $\rightarrow$ Calculate.}
+\begin{nota}[¿Convergió?]
+El residual de continuidad puede quedarse alto porque se escala con las primeras iteraciones. Lo que manda: monitores planos y balances cerrados.
+\end{nota}
+\paso{a_flux.jpg}{Results $\rightarrow$ Reports $\rightarrow$ Fluxes.}
+Mass Flow Rate (entrada, salida) y Total Heat Transfer Rate (entrada, salida, fuente\_calor): el neto debe ser menor a \SI{0.5}{\%}. Se esperan \SI{0.001746}{kg/s} y \SI{5}{W} (medio modelo).
+
+\section{Independencia de malla}
+\paso{a_duplicate.jpg}{Duplicar el sistema para cada malla.}
+\begin{enumerate}
+\item Clic derecho en \menu{A1 $\rightarrow$ Duplicate}; renombrar. La copia conserva setup y monitores.
+\item En la nueva celda Mesh cambiar los dos tamaños, \menu{Generate}, \menu{Update}, Setup, Hybrid, 500 iteraciones y Fluxes.
+\end{enumerate}
+\begin{center}\begin{tabular}{lcccc}\toprule
+Malla & Element Size & Body Sizing & Elementos & $R_{th}$ [K/W]\\\midrule
+Gruesa & \SI{6}{mm} & \SI{1.4}{mm} & \num{121992} & 1.2262\\
+Intermedia & \SI{4.2}{mm} & \SI{1.0}{mm} & \num{273504} & 1.2268\\
+Fina & \SI{3}{mm} & \SI{0.7}{mm} & \num{608180} & 1.2315\\\bottomrule
+\end{tabular}\end{center}
+\paso{a_gruesa.jpg}{Malla gruesa.}
+\paso{a_flux_g.jpg}{Balance de la malla gruesa.}
+\begin{nota}
+Una malla más fina que la de 3/\SI{0.7}{mm} pasaría el límite de 1 millón de celdas de la versión Student; por eso las otras dos son más gruesas.
+\end{nota}
+
+\section{Postproceso}
+\subsection{Abrir la solución sin Workbench}
+Si Workbench se cerró de forma inesperada, abrir Fluent desde el menú Inicio y leer la copia guardada escribiendo en la consola:
+\begin{lstlisting}
+/file/read-case-data
+ "C:/Users/juand/Documents/Proyectos_Ansys_Portafolio/02_Disipador_CFD/resultados/disipador_malla_media.cas.h5"
+\end{lstlisting}
+\begin{alerta}
+Leer por la ventana \menu{File $\rightarrow$ Read} puede abrir un \texttt{FFF-1.cas.h5} de otro proyecto: todos los proyectos de Workbench usan el mismo nombre. El comando con ruta completa evita la confusión.
+\end{alerta}
+
+\subsection{Temperatura del disipador}
+\paso{a_tdis.jpg}{Contorno temp\_disipador.}
+Contours $\rightarrow$ New: Static Temperature, \menu{Node Values (marcado)}, \menu{Global Range (sin marcar)}, superficies \texttt{fuente\_calor}, \texttt{simetr\_a\_base} y la \texttt{...-shadow}. \menu{Colormap Options}: float, precisión 1.
+
+\subsection{Plano medio: temperatura y velocidad del aire}
+\paso{guia2_new_surface.jpg}{Crear el plano desde New Surface $\rightarrow$ Plane.}
+Method \menu{XY Plane}, $z=\SI{0.0175}{m}$ (mitad de la altura de aleta), nombre \texttt{plano\_medio}.
+\paso{a_taire.jpg}{temp\_aire.}
+\paso{a_vel.jpg}{vel\_aire.}
+
+\subsection{Líneas de corriente}
+Pathlines $\rightarrow$ New: \texttt{trayectorias}, Release from \texttt{entrada}, Color by Static Temperature, Auto Range (sin marcar) con 298.15--\SI{302}{K}, Path Skip 2--3, Steps 5000.
+\paso{a_scene.jpg}{Scene $\rightarrow$ New: temp\_disipador + trayectorias.}
+\paso{a_scene_dark.jpg}{Escena final. Leyenda del disipador a la derecha (Colormap Options).}
+
+\subsection{Disipador completo (espejo)}
+\menu{View $\rightarrow$ Views… $\rightarrow$ Mirror Planes $\rightarrow$ simetr\_a $\rightarrow$ Apply}. Solo afecta la visualización: se ven las 10 aletas.
+
+\subsection{Animación de partículas y video}
+\begin{enumerate}
+\item Acomodar la vista (después ya no moverla).
+\item Clic derecho en \menu{temp\_disipador $\rightarrow$ Display}.
+\item En la consola: \texttt{/display/set/overlays yes}
+\item Pathlines $\rightarrow$ Pulse Mode \menu{Continuous} $\rightarrow$ \menu{Pulse}.
+\item Grabar con \texttt{Win+Alt+R} (inicio y fin). Al terminar: \texttt{/display/set/overlays no}.
+\end{enumerate}
+\paso{frame_video.jpg}{Cuadro del video final: 10 aletas, líneas animadas y temperatura del disipador.}
+\begin{alerta}[Para no perder el trabajo]
+Si se gira la vista durante el pulso, se borra el disipador (repetir desde el paso 2). Antes de cerrar: \menu{File $\rightarrow$ Write $\rightarrow$ Case \& Data} como \texttt{disipador\_postproceso}. Una escena muy pesada con overlays puede cerrar Fluent.
+\end{alerta}
+
+\section{Errores comunes}
+\begin{itemize}[leftmargin=*]
+\item SolidWorks sin licencia $\rightarrow$ geometría por script en SpaceClaim.
+\item Script con 6 cuerpos $\rightarrow$ \menu{Combine}.
+\item Cushions simétricos o en el eje equivocado $\rightarrow$ desmarcar Symmetric dimensions y comprobar que la caja crece en $X$.
+\item Seguir dentro de Enclosure al intentar seleccionar caras $\rightarrow$ Esc.
+\item Olvidar el costado de la base en la simetría $\rightarrow$ \texttt{simetria\_base}.
+\item Material sin \menu{Change/Create} $\rightarrow$ volver a abrirlo para comprobar.
+\item Criterios de residuales por defecto ($10^{-3}$) $\rightarrow$ $10^{-5}$ y $10^{-8}$.
+\item Cierre inesperado $\rightarrow$ Unlock, ``Yes'' para regresar al último guardado y no dar Update a celdas con soluciones.
+\end{itemize}
+\end{document}

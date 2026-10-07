@@ -1,0 +1,218 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[scaled=0.95]{helvet}\renewcommand{\familydefault}{\sfdefault}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx,xcolor,enumitem,booktabs,amsmath,siunitx}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref,fancyhdr,titlesec,capt-of,needspace}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\renewcommand{\contentsname}{Contenido}
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabla}
+\sisetup{output-decimal-marker={.}}
+\definecolor{ansys}{RGB}{255,183,27}
+\titleformat{\section}{\Large\bfseries\color{black}}{\colorbox{ansys}{\makebox[1.6em]{\thesection}}}{0.6em}{}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small Placa con agujero a tensión --- Instructivo Ansys Mechanical}
+\rhead{\small Ing. Juan Diego Rubio Ruiz}
+\cfoot{\thepage}
+\newtcolorbox{nota}[1][Nota]{colback=yellow!8,colframe=ansys!90!black,fonttitle=\bfseries,title=#1}
+\newtcolorbox{alerta}[1][Cuidado]{colback=red!4,colframe=red!60!black,fonttitle=\bfseries,title=#1}
+\newcommand{\menu}[1]{\textsf{\textbf{#1}}}
+\newcommand{\paso}[2]{\par\needspace{0.42\textheight}\begin{center}\includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{img/#1}\captionof{figure}{#2}\end{center}}
+\setlist[enumerate]{itemsep=2pt,topsep=4pt}
+
+\begin{document}
+\begin{titlepage}
+\centering\vspace*{2cm}
+{\Huge\bfseries Placa con agujero a tensión\par}\vspace{0.4cm}
+{\LARGE Instructivo paso a paso en Ansys Mechanical 2026 R1 Student\par}\vspace{1cm}
+\includegraphics[width=0.85\linewidth]{img/p19_resultado_malla5.png}\par\vspace{1cm}
+{\large Análisis estático 2D en esfuerzo plano, estudio de convergencia de malla\\ y extracción del perfil de esfuerzos para validación analítica\par}
+\vfill
+{\large Ing. Juan Diego Rubio Ruiz\par}
+{\normalsize Proyecto 1 del portafolio de simulación --- Octubre 2026\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{El problema}
+Placa de acero estructural con un agujero circular central sometida a tensión uniaxial. Se busca el esfuerzo normal máximo $\sigma_{x,\max}$ en el borde del agujero.
+
+\begin{center}
+\begin{tabular}{ll}\toprule
+Parámetro & Valor\\\midrule
+Largo $L$ / ancho $W$ / espesor $t$ & \SI{200}{mm} / \SI{100}{mm} / \SI{5}{mm}\\
+Diámetro del agujero $d$ & \SI{20}{mm} ($d/W=0.2$)\\
+Material & Structural Steel ($E=\SI{200}{GPa}$, $\nu=0.3$)\\
+Carga & $\sigma=\SI{10}{MPa}$ de tensión en los extremos\\
+Modelo & 1/4 de placa (doble simetría), 2D esfuerzo plano\\
+Referencia & Heywood: $\sigma_{\max}\approx\SI{31.4}{MPa}$\\\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{nota}[Organización de archivos]
+Todo vive en \texttt{Documentos\textbackslash Proyectos\_Ansys\_Portafolio\textbackslash 01\_Placa\_con\_agujero\_FEA\textbackslash} con las subcarpetas \texttt{workbench}, \texttt{resultados}, \texttt{resultados\textbackslash imagenes}, \texttt{validacion} e \texttt{informe}.
+\end{nota}
+
+\section{Workbench: sistema de análisis en 2D}
+\paso{p01_workbench_2d.png}{Crear el sistema Static Structural y fijar el tipo de análisis en 2D.}
+\begin{enumerate}
+\item Abrir Workbench 2026 R1 y arrastrar \menu{Static Structural} desde el \menu{Toolbox} al área central.
+\item Guardar de inmediato: \menu{File $\rightarrow$ Save As} en la carpeta \texttt{workbench} con el nombre \texttt{placa\_agujero}.
+\item Dar \textbf{un solo clic} en la celda \menu{Geometry}. Con \menu{View $\rightarrow$ Properties} activo, en \menu{Advanced Geometry Options} poner \menu{Analysis Type = 2D}.
+\end{enumerate}
+\begin{alerta}
+El tipo de análisis 2D se fija \textbf{antes} de abrir la geometría o Mechanical. Después ya no se puede cambiar.
+\end{alerta}
+
+\section{Geometría en SpaceClaim}
+\subsection{Plano de boceto XY}
+\paso{p02_spaceclaim_boceto.png}{Modo boceto en SpaceClaim: elegir el plano XY y verlo de frente.}
+\begin{enumerate}
+\item Clic derecho en \menu{Geometry $\rightarrow$ New SpaceClaim Geometry}.
+\item En la pestaña \menu{Boceto}, el segundo icono de la barra inferior es \menu{Seleccionar nuevo plano de boceto}. Dar clic en el eje Z: el plano queda perpendicular a Z, es decir, el plano XY.
+\item \menu{Vista de plan}. El triedro debe mostrar X a la derecha y Y hacia arriba.
+\end{enumerate}
+\begin{alerta}
+Mechanical exige que un modelo 2D esté en el plano XY. Si el triedro muestra la letra Z en el dibujo, el boceto está en otro plano.
+\end{alerta}
+
+\subsection{Rectángulo y círculo}
+\paso{p03_boceto.png}{Rectángulo de $100\times50$ y círculo de diámetro 20 con centro en el origen.}
+\begin{enumerate}
+\item \menu{Rectángulo}: clic en el origen, mover el ratón hacia arriba a la derecha \textbf{sin dar otro clic}, teclear \texttt{100}, \texttt{Tab}, \texttt{50}, \texttt{Enter}.
+\item \menu{Círculo}: clic en el origen, teclear \texttt{20} (diámetro), \texttt{Enter}.
+\item \menu{Terminar edición del boceto} (palomita verde).
+\end{enumerate}
+
+\subsection{Quitar el círculo}
+\paso{p04_borrar.png}{Borrar las caras del círculo con la herramienta Seleccionar.}
+\begin{enumerate}
+\item Activar \menu{Seleccionar} (no \menu{Tirar}: arrastrar con Tirar le da espesor a la superficie).
+\item Clic en la parte del círculo fuera de la placa $\rightarrow$ \texttt{Supr}. Clic en el cuartito dentro de la placa $\rightarrow$ \texttt{Supr}.
+\end{enumerate}
+\paso{p05_geometria_final.png}{Geometría final: un solo cuerpo de superficie.}
+Guardar con \texttt{Ctrl+S} y cerrar SpaceClaim. En Workbench, la celda Geometry queda con palomita verde.
+
+\section{Mechanical: modelo}
+\subsection{Unidades y comportamiento 2D}
+\paso{p06_mechanical_unidades.png}{Unidades métricas en mm y esfuerzo plano.}
+\begin{enumerate}
+\item Doble clic en la celda \menu{Model} de Workbench para abrir Mechanical.
+\item \menu{Home $\rightarrow$ Units $\rightarrow$ Metric (mm, kg, N, s, mV, mA)}.
+\item En \menu{Geometry}, \menu{2D Behavior = Plane Stress}. El área reportada, \SI{4921.6}{mm^2}, coincide con $100\cdot50-\pi\cdot10^2/4$.
+\end{enumerate}
+
+\subsection{Espesor y material}
+\paso{p07_espesor.png}{Espesor del cuerpo de superficie.}
+Desplegar \menu{Geometry}, seleccionar el cuerpo y en \menu{Details} poner \menu{Thickness = 5 mm}. Revisar que \menu{Material $\rightarrow$ Assignment} sea \menu{Structural Steel}.
+
+\subsection{Condiciones de simetría y carga}
+\paso{p08_condiciones.png}{Mapa de aristas: dos simetrías y la carga.}
+\begin{center}
+\begin{tabular}{lll}\toprule
+Arista & Objeto & Valores\\\midrule
+Izquierda ($x=0$) & Displacement & $X=0$, $Y=$ Free\\
+Inferior ($y=0$) & Displacement 2 & $X=$ Free, $Y=0$\\
+Derecha ($x=100$) & Pressure & Magnitude $=\SI{-10}{MPa}$\\
+Arco del agujero & --- & libre\\\bottomrule
+\end{tabular}
+\end{center}
+Activar antes el filtro de selección \menu{Edge} en la barra de selección.
+
+\paso{p09_disp1.png}{Displacement en la arista izquierda.}
+\begin{enumerate}
+\item Clic derecho en \menu{Static Structural (A5) $\rightarrow$ Insert $\rightarrow$ Displacement}.
+\item Seleccionar la arista izquierda $\rightarrow$ \menu{Apply}.
+\item \menu{X Component = 0}, \menu{Y Component = Free}.
+\end{enumerate}
+\paso{p10_disp2.png}{Displacement 2 en la arista inferior.}
+Igual que el anterior en la arista inferior, con \menu{X = Free} y \menu{Y = 0}.
+
+\paso{p11_pressure.png}{Presión en la arista derecha.}
+Clic derecho en \menu{Static Structural $\rightarrow$ Insert $\rightarrow$ Pressure}, arista derecha $\rightarrow$ \menu{Apply}, \menu{Define By = Normal To}.
+\paso{p12_signo.png}{Signo de la presión.}
+\begin{alerta}[El signo importa]
+En Ansys una presión positiva empuja hacia la cara (compresión). Para tensión se escribe \textbf{\texttt{-10}}. La leyenda debe decir ``Pressure: -10. MPa''.
+\end{alerta}
+
+\section{Malla y primera solución}
+\paso{p13_malla.png}{Orden cuadrático y Edge Sizing en el arco.}
+\begin{enumerate}
+\item Clic en \menu{Mesh} $\rightarrow$ \menu{Element Order = Quadratic}.
+\item Clic derecho en \menu{Mesh $\rightarrow$ Insert $\rightarrow$ Sizing}. Seleccionar el arco $\rightarrow$ \menu{Apply}. \menu{Type = Number of Divisions}, \menu{Behavior = Hard}.
+\item Clic derecho en \menu{Mesh $\rightarrow$ Generate Mesh}.
+\end{enumerate}
+\paso{p14_solve.png}{Estadísticas de malla, resultado y Solve.}
+\paso{p15_normal_stress.png}{Esfuerzo normal en X.}
+\begin{enumerate}
+\item En \menu{Mesh $\rightarrow$ Statistics} se leen \menu{Nodes} y \menu{Elements}.
+\item Clic derecho en \menu{Solution (A6) $\rightarrow$ Insert $\rightarrow$ Stress $\rightarrow$ Normal}, \menu{Orientation = X Axis}.
+\item \menu{Solve}.
+\end{enumerate}
+\paso{p16_resultado_malla_gruesa.png}{Primer resultado con la malla por defecto.}
+Se compara contra $\sigma_x$ y no contra von Mises: en el punto $(0,10)$ el esfuerzo radial es nulo, así que $\sigma_x$ es directamente el esfuerzo máximo y es el mismo componente que da la teoría.
+
+\section{Estudio de convergencia de malla}
+\begin{alerta}[Lección aprendida]
+Refinar \textbf{solo} el arco no converge. Con el tamaño global por defecto (\SI{8.77}{mm}), pasar de 4 a 8 divisiones \emph{bajó} $\sigma_{x,\max}$ de 27.78 a \SI{26.93}{MPa}: los elementos junto al agujero siguen siendo largos y deformados y no capturan el gradiente. Hay que refinar el tamaño global junto con el arco.
+\end{alerta}
+\paso{p17_element_size.png}{Los dos controles que se refinan juntos.}
+\paso{p18_ciclo.png}{Ciclo por malla: cambiar tamaños, Solve, leer resultados.}
+
+\begin{center}
+\begin{tabular}{cccrrc}\toprule
+Malla & Element Size & Divisiones & Nodos & Elementos & $\sigma_{x,\max}$ [MPa]\\\midrule
+1 & \SI{4}{mm} & 4 & 1\,035 & 320 & 31.007\\
+2 & \SI{2}{mm} & 8 & 3\,829 & 1\,228 & 31.310\\
+3 & \SI{1}{mm} & 16 & 15\,144 & 4\,955 & 31.453\\
+4 & \SI{0.7}{mm} & 24 & 30\,838 & 10\,147 & 31.486\\
+5 & \SI{0.5}{mm} & 32 & 59\,977 & 19\,806 & 31.523\\\bottomrule
+\end{tabular}
+\end{center}
+Los resultados se anotan en
+\path{resultados\convergencia_malla.csv} y se procesan con \path{validacion\referencia_kirsch.py}. La versión Student admite hasta 128\,000 nodos en estructural.
+\paso{p19_resultado_malla5.png}{Resultado de la malla 5.}
+
+\section{Exportar resultados}
+\subsection{Imágenes}
+\paso{p20_image_to_file.png}{Image to File Preferences.}
+\begin{enumerate}
+\item Seleccionar el resultado o la malla, encuadrar con \menu{Box Zoom} (o \texttt{F7} para la vista completa).
+\item \menu{Home $\rightarrow$ Images $\rightarrow$ Image to File}. Dejar \menu{Current Graphics Display} marcado y \menu{Append Graph} sin marcar (salvo para el Path) $\rightarrow$ \menu{OK}.
+\item Guardar como PNG en \path{resultados\imagenes}: \path{sigmax_malla5_zoom}, \path{sigmax_malla5_completa}, \path{malla5_zoom}.
+\end{enumerate}
+
+\subsection{Perfil de esfuerzo sobre la arista izquierda}
+\paso{p21_path.png}{Path sobre la arista $x=0$.}
+\begin{enumerate}
+\item Clic derecho en \menu{Model (A4) $\rightarrow$ Insert $\rightarrow$ Construction Geometry}; luego clic derecho en ella $\rightarrow$ \menu{Insert $\rightarrow$ Path}.
+\item \menu{Path Type = Edge}. Con el filtro de aristas, seleccionar la arista izquierda (\texttt{F7} si el zoom no la deja ver) $\rightarrow$ \menu{Apply}.
+\end{enumerate}
+\paso{p22_normal_stress_path.png}{Esfuerzo normal evaluado sobre el Path.}
+\paso{p23_path_resultado.png}{Perfil $\sigma_x(y)$ y exportación a texto.}
+\begin{enumerate}
+\item Insertar otro \menu{Normal Stress} con \menu{Scoping Method = Path}, el Path creado y \menu{Orientation = X Axis}.
+\item Clic derecho $\rightarrow$ \menu{Evaluate All Results}.
+\item Clic derecho $\rightarrow$ \menu{Export $\rightarrow$ Export Text File} como \texttt{resultados\textbackslash path\_sigma\_x.txt}. Para la imagen con la curva, \menu{Image to File} con \menu{Append Graph} marcado.
+\end{enumerate}
+\begin{nota}
+El Path empieza arriba: $S=0$ corresponde a $y=50$ y $S=40$ al borde del agujero. El script usa la columna de coordenada $Y$, así que el sentido no importa.
+\end{nota}
+
+\section{Cierre}
+\texttt{Ctrl+S} en Mechanical, cerrar, \texttt{Ctrl+S} en Workbench. Luego ejecutar \path{python validacion\referencia_kirsch.py} para regenerar las gráficas de convergencia y de comparación contra Kirsch.
+
+\begin{nota}[Resumen de errores comunes]
+\begin{itemize}[leftmargin=*]
+\item Boceto en el plano XZ en lugar de XY.
+\item Analysis Type en 3D por no cambiarlo antes de abrir la geometría.
+\item Presión positiva (compresión) en lugar de \texttt{-10}.
+\item Refinar solo el arco y dejar el tamaño global por defecto.
+\item Usar la herramienta Tirar en lugar de Seleccionar al borrar caras.
+\end{itemize}
+\end{nota}
+\end{document}

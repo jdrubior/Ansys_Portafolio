@@ -1,0 +1,4 @@
+malla,elementos,nodos,T_max_base_C,caida_presion_Pa,R_th_K_W,error_energia_pct
+gruesa,121992,62158,37.262,9.6148,1.2262,0.04
+intermedia,273504,131357,37.268,8.9583,1.2268,0.19
+fina,608180,278155,37.315,8.8895,1.2315,0.11
